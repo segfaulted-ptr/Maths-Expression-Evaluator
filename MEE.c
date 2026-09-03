@@ -227,7 +227,45 @@ static int op_precedence(char op){
  * @returns The address of the node that points to the node holding the operator with higher 
  * precedence.
  */
-static AST_Node_t *check_op_precedence(MEE_AST_t *Exp, Token_t Token){
+// static AST_Node_t *check_op_precedence(MEE_AST_t *Exp, Token_t Token){
+//     if(Exp == NULL){
+//         // perror or printf? i think printf as no system error can be caused here
+//         // printf("Expression Error: Expression Empty. Exiting...\n");
+//         // exit(EXIT_FAILURE);
+//         return NULL;
+//     }
+
+//     AST_Node_t *prev_node = Exp->head;
+//     AST_Node_t *curr_node = Exp->head->right;
+//     // AST_Node_t *curr_node = Exp->head;
+
+//     int token_precedence = op_precedence(Token.value);
+    
+//     // return head pointer if it has higher precedence operator
+//     if(prev_node->token.tag == OPERATOR){
+//         if(token_precedence < op_precedence(prev_node->token.value)){
+//             printf("%c has lower precedence than %c\n", (char)prev_node->token.value, (char)Token.value);
+//             return prev_node;
+//         }
+//     }
+
+//     // 
+//     while(curr_node != NULL){
+//         if(curr_node->token.tag == OPERATOR){
+//             if(token_precedence < op_precedence(curr_node->token.value)){
+//                 printf("%s[WHILE LOOP]: %c has higher precedence than %c%s\n", RED_CONSOLE_TEXT,
+//                                                                              (char)curr_node->token.value,
+//                                                                              (char)Token.value,
+//                                                                              RESET_CONSOLE_TEXT);
+//                 return prev_node;
+//             }
+//         }
+//         prev_node = curr_node;
+//         curr_node = curr_node->right;
+//     }
+//     return NULL;
+// }
+static AST_Node_t **check_op_precedence(MEE_AST_t **Exp, Token_t Token){
     if(Exp == NULL){
         // perror or printf? i think printf as no system error can be caused here
         // printf("Expression Error: Expression Empty. Exiting...\n");
@@ -235,33 +273,22 @@ static AST_Node_t *check_op_precedence(MEE_AST_t *Exp, Token_t Token){
         return NULL;
     }
 
-    AST_Node_t *prev_node = Exp->head;
-    AST_Node_t *curr_node = Exp->head->right;
-    // AST_Node_t *curr_node = Exp->head;
+    AST_Node_t **prev_node = &(*Exp)->head;
 
     int token_precedence = op_precedence(Token.value);
     
     // return head pointer if it has higher precedence operator
-    if(prev_node->token.tag == OPERATOR){
-        if(token_precedence < op_precedence(prev_node->token.value)){
-            printf("%c has lower precedence than %c\n", (char)prev_node->token.value, (char)Token.value);
-            return prev_node;
-        }
-    }
-
-    // 
-    while(curr_node != NULL){
-        if(curr_node->token.tag == OPERATOR){
-            if(token_precedence < op_precedence(curr_node->token.value)){
+    while((*prev_node) != NULL){
+        if((*prev_node)->token.tag == OPERATOR){
+            if(token_precedence < op_precedence((*prev_node)->token.value)){
                 printf("%s[WHILE LOOP]: %c has higher precedence than %c%s\n", RED_CONSOLE_TEXT,
-                                                                             (char)curr_node->token.value,
+                                                                             (char)(*prev_node)->token.value,
                                                                              (char)Token.value,
                                                                              RESET_CONSOLE_TEXT);
                 return prev_node;
             }
         }
-        prev_node = curr_node;
-        curr_node = curr_node->right;
+        prev_node = &(*prev_node)->right;
     }
     return NULL;
 }
@@ -300,8 +327,8 @@ AST_Node_t *parse_exp(Tokens_LL_t *tokens_list){
                 // get the address of the memory the parent node is pointing to,
                 // and change it.
                 // OR just get the parent node who's left/right node points to the address we want and change it from parent!!! ToT ToT
-                AST_Node_t *node_addr = NULL;
-                if((node_addr = check_op_precedence(Exp_ast, curr_tok->token)) != NULL){
+                AST_Node_t **node_addr = NULL;
+                if((node_addr = check_op_precedence(&Exp_ast, curr_tok->token)) != NULL){
 
                     // printf("better than nothing.\n");
                     AST_Node_t *new_ast_node = new_AST_Node();
@@ -315,22 +342,27 @@ AST_Node_t *parse_exp(Tokens_LL_t *tokens_list){
                      */
                     // if the higher precedence operator is at head pointer, change the head pointer
                     // only if the head node and current token has different operators
-                    if(node_addr == Exp_ast->head 
-                        && ( node_addr->token.tag == OPERATOR 
-                            && curr_tok->token.tag == OPERATOR 
-                            && node_addr->token.value != curr_tok->token.value)){
-                        printf("%s[PARSER]: Changing the Head Pointer%s\n", RED_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
-                        new_ast_node->left = node_addr;
-                        Exp_ast->head = new_ast_node;
-                    }
-                    else{
-                        printf("%s[PARSER]: Changing the Head Pointer's Right Pointer%s\n", YELLOW_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
-                        // printf("The node to reparent:\n");
-                        // print_AST(node_addr);
-                        // printf("\n");
-                        new_ast_node->left = node_addr->right;
-                        node_addr->right = new_ast_node;
-                    }
+                    // if(node_addr == Exp_ast->head 
+                    //     && ( node_addr->token.tag == OPERATOR 
+                    //         && curr_tok->token.tag == OPERATOR 
+                    //         && node_addr->token.value != curr_tok->token.value)){
+                    //     printf("%s[PARSER]: Changing the Head Pointer%s\n", RED_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
+                    //     new_ast_node->left = node_addr;
+                    //     Exp_ast->head = new_ast_node;
+                    // }
+                    // else{
+                    //     printf("%s[PARSER]: Changing the Head Pointer's Right Pointer%s\n", YELLOW_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
+                    printf("%sThe Parent Node: %s\n", YELLOW_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
+                    print_AST(new_ast_node);
+                    printf("\n\n");
+                    printf("%sThe node to reparent:%s\n", YELLOW_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
+                    print_AST(*node_addr);
+                    printf("\n\n");
+                    //     new_ast_node->left = node_addr->right;
+                    //     node_addr->right = new_ast_node;
+                    // }
+                    new_ast_node->left = *node_addr;
+                    *node_addr = new_ast_node;
 
 
                     /** freeing the current node here
@@ -351,6 +383,9 @@ AST_Node_t *parse_exp(Tokens_LL_t *tokens_list){
                      * rearrange the new_ast_node we made to be the parent of the node that the head node
                      * points to.
                     */
+                    printf("Current ast node before freeing: \n");
+                    print_AST(curr_ast_node);
+                    printf("\n\n");
                     free(curr_ast_node);
                     curr_ast_node = NULL;
                     // curr_ast_node = new_ast_node;
@@ -360,11 +395,10 @@ AST_Node_t *parse_exp(Tokens_LL_t *tokens_list){
 
                     // curr_ast_node->left = *node_addr;
 
-                    printf("still promising.\n");
-                    // new_ast_node->right = new_AST_Node();
-                    // curr_ast_node = new_ast_node->right;
-                    curr_ast_node = new_AST_Node();
-                    printf("Ohh YESS!!\n");
+                    // going to the right node.
+                    new_ast_node->right = new_AST_Node();
+                    curr_ast_node = new_ast_node->right;
+                    // printf("Ohh YESS!!\n");
                 }
                 else{
 
@@ -408,7 +442,13 @@ AST_Node_t *parse_exp(Tokens_LL_t *tokens_list){
                 printf("%s[PARSER]: an EMPTY Node encountered while parsing.%s\n", YELLOW_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
                 break;
         }
-        // free(curr_tok);
+        printf("Pushing token: ");
+        if(curr_tok->token.tag == INTEGER){
+            printf("\'%llu\'\n", curr_tok->token.value);
+        } else if(curr_tok->token.tag == OPERATOR){
+            printf("\'%c\'\n", (char)curr_tok->token.value);
+        }
+        // freeing current tokens from list
         Tokens_LL_t *temp = curr_tok;
         curr_tok = curr_tok->next;
         free(temp);
@@ -416,6 +456,10 @@ AST_Node_t *parse_exp(Tokens_LL_t *tokens_list){
         printf("%sPrinting AST%s\n", GREEN_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
         print_AST(Exp_ast->head);
         printf("\n\n");
+        printf("Current Node ptr: \n");
+        print_AST(curr_ast_node);
+        printf("\n\n");
+
     }
     // printf("Current node value: %lld\n", curr_ast_node->token.value);
     // if(curr_ast_node->left == NULL){
@@ -430,8 +474,8 @@ AST_Node_t *parse_exp(Tokens_LL_t *tokens_list){
     // WTF???
     // curr_ast_node->left = NULL;
     // curr_ast_node->right = NULL;
-    // printf("\n\nPrinting the full AST\n");
-    // print_AST(Exp_ast->head);
+    printf("\n\nPrinting the full AST\n");
+    print_AST(Exp_ast->head);
     return Exp_ast->head;
 }
 
@@ -442,7 +486,7 @@ AST_Node_t *parse_exp(Tokens_LL_t *tokens_list){
  */
 static uint64_t evaluate_arithmetic(uint64_t l_num, uint64_t r_num, char op){
 
-    printf("%llu %c %llu\n", l_num, op, r_num);
+    printf("\'%llu\' %c \'%llu\'\n", l_num, op, r_num);
     switch(op){
         case '+':   return l_num + r_num;
         case '-':   return l_num - r_num;
@@ -539,11 +583,11 @@ static void print_AST(AST_Node_t *ast_node){
     switch(ast_node->token.tag){
 
         case INTEGER:
-            printf("NODE: \'%lld\'.\n", ast_node->token.value);
+            printf("NODE: \'%lld\'\n", ast_node->token.value);
             break;
 
         case OPERATOR:
-            printf("NODE: \'%c\'.\n", (char)ast_node->token.value);
+            printf("NODE: \'%c\'\n", (char)ast_node->token.value);
         case L_PAREN:
         case R_PAREN:
             break;
@@ -551,11 +595,15 @@ static void print_AST(AST_Node_t *ast_node){
         case EMPTY:
             printf("%sNODE is EMPTY%s\n", YELLOW_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
     }
-    printf("LEFT: ");
-    print_AST(ast_node->left);
+    if(ast_node->left != NULL){
+        printf("LEFT: ");
+        print_AST(ast_node->left);
+    }
     // printf("\n");
-    printf("RIGHT: ");
-    print_AST(ast_node->right);
+    if(ast_node->right != NULL){
+        printf("RIGHT: ");
+        print_AST(ast_node->right);
+    }
     // printf("\n");
 
     return;

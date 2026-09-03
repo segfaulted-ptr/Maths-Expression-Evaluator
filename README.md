@@ -1,8 +1,8 @@
 # Math Expressions Evaluator
 
 lexer - implemented
-parser - implemented
-evaluator - TODO
+parser - implemented; BROKEN
+evaluator - implemented
 
 The Basics of the program are complete. Only need to implement the evaluator now and add support for parenthesis.
 
