@@ -21,6 +21,7 @@ enum Type{
     OPERATOR,
     L_PAREN,
     R_PAREN,
+    TOK_END,
 };
 
 
@@ -53,8 +54,8 @@ struct MEE_AST{
     AST_Node_t *head;
 };
 
-static void print_tokens(Tokens_LL_t *tokens_list);
-static void print_AST(AST_Node_t *ast_node);
+void print_tokens(Tokens_LL_t *tokens_list);
+void print_AST(AST_Node_t *Exp_AST);
 
 static Tokens_LL_t *new_Token_Node(Type_t tag, int64_t value){
     Tokens_LL_t *node = malloc(sizeof(Tokens_LL_t));
@@ -83,6 +84,30 @@ static void push_Token_Node(Tokens_LL_t **tokens_list, Tokens_LL_t *new_node){
     curr_node->next = new_node;
     return;
 }
+static Token_t pop_Token_Node(Tokens_LL_t **tokens_list){
+    if(tokens_list == NULL){
+        printf("List Pointer is NULL.\n");
+        exit(EXIT_FAILURE);
+    }
+    if(*tokens_list == NULL){
+        printf("Token List empty: No Node Available to POP.\n");
+        exit(EXIT_FAILURE);
+        // return NULL;
+    }
+    Token_t curr_node = (*tokens_list)->token;
+    Tokens_LL_t *node_to_free = *tokens_list;
+    *tokens_list = ((*tokens_list)->next);
+    free(node_to_free);
+    return curr_node;
+}
+static Token_t peek_Token_Node(Tokens_LL_t *tokens_list){
+    if(tokens_list == NULL){
+        printf("Token List empty: No Node Available to PEEK.\n");
+        exit(EXIT_FAILURE);
+    }
+    Token_t curr_node = tokens_list->token;
+    return curr_node;
+}
 /**
  * TODO: Improve the Tokens Linked List to not make an extra node at the end.
  * 
@@ -92,13 +117,14 @@ static void push_Token_Node(Tokens_LL_t **tokens_list, Tokens_LL_t *new_node){
  *                  which is nice too.. for now.
  */
 Tokens_LL_t *tokenize_exp(const char *input_exp){
-
     /**
-     * Handle tokenizing only here,
-     * every symbol in the input string has its own node
-     * the extra nodes (e.g. L_PAREN and R_PAREN nodes) are removed by the parsr
+     * Handles: 
+     *      - arithmetic operations: * + / - 
+     *      - parenthesis
+     * Improvements:
+     *      - trigonometric operations: sin, cos, tan, sec, cosec, cot, arc_sin, arc_cos, arc_tan, arc_sec, arc_cosec, arc_cot 
+     *      - extended arithmetic operations: ^, %, !, 
      */
-
     Tokens_LL_t *tokens_list = NULL;
     Tokens_LL_t *curr_node = NULL;
 
@@ -156,61 +182,29 @@ Tokens_LL_t *tokenize_exp(const char *input_exp){
 
         push_Token_Node(&tokens_list, curr_node);
     }
-    // printf("Printing all the Tokens:\n");
+    curr_node = new_Token_Node(TOK_END, -1);
+    push_Token_Node(&tokens_list, curr_node);
     // print_tokens(tokens_list);
+    // printf("Printing all the Tokens:\n");
     return tokens_list;
 }
 
 
 
-static AST_Node_t *new_AST_Node(){
+static AST_Node_t *new_AST_Node(Type_t tag, int64_t value){
 
     AST_Node_t *new_node = malloc(sizeof(AST_Node_t));
     if(new_node == NULL){
         perror("Memory Allocation Failed. Exiting...\n");
         exit(EXIT_FAILURE);
     }
-    new_node->token.tag = EMPTY;
-    new_node->token.value = -1;
+    new_node->token.tag = tag;
+    new_node->token.value = value;
     new_node->left = NULL;
     new_node->right = NULL;
 
     return new_node;
 }
-static MEE_AST_t *new_AST(){
-
-    MEE_AST_t *AST = malloc(sizeof(MEE_AST_t));
-    if(AST == NULL){
-        perror("Memory Allocation Failed. Exiting...\n");
-        // Do i need to free the tokens_list or not??? !!! well, when i had put this in the parse_exp function lol
-        exit(EXIT_FAILURE);
-    }
-
-    AST->head = new_AST_Node();
-
-    return AST;
-}
-
-// Handling parenthesis
-int paren_stack[MAX_PAREN_STACK_SIZE] = {0};
-size_t paren_stack_idx = 0;
-static void paren_push(Type_t val){
-    printf("called paren_push: idx:%zu, val: %d\n", paren_stack_idx, (int)val);
-    if(MAX_PAREN_STACK_SIZE <= paren_stack_idx){
-        perror("Stack Overflow: Parenthesis Stack Full. Exiting Program...\n");
-        exit(EXIT_FAILURE);
-    }
-    paren_stack[paren_stack_idx++] = val;
-}
-static Type_t paren_pop(){
-    printf("called paren_pop: idx:%zu, val: %d\n", paren_stack_idx, (int)paren_stack[paren_stack_idx-1]);
-    if(paren_stack_idx == 0){
-        perror("Stack Underflow: Parenthesis Stack Empty. Exiting Program...\n");
-        exit(EXIT_FAILURE);
-    }
-    return paren_stack[--paren_stack_idx];
-}
-
 static int op_precedence(char op){
     switch(op){
         case '+':   return 1;
@@ -222,263 +216,87 @@ static int op_precedence(char op){
     return -1;
 }
 /**
- * @brief Checks the precedence of provided operator with the ast
- * from head to last node
- * @returns The address of the node that points to the node holding the operator with higher 
- * precedence.
- */
-// static AST_Node_t *check_op_precedence(MEE_AST_t *Exp, Token_t Token){
-//     if(Exp == NULL){
-//         // perror or printf? i think printf as no system error can be caused here
-//         // printf("Expression Error: Expression Empty. Exiting...\n");
-//         // exit(EXIT_FAILURE);
-//         return NULL;
-//     }
+ * @brief Parses the tokens using pratt parsing
+*/
+static AST_Node_t *pratt_parser(Tokens_LL_t **tokens, float prev_binding_power){
 
-//     AST_Node_t *prev_node = Exp->head;
-//     AST_Node_t *curr_node = Exp->head->right;
-//     // AST_Node_t *curr_node = Exp->head;
-
-//     int token_precedence = op_precedence(Token.value);
-    
-//     // return head pointer if it has higher precedence operator
-//     if(prev_node->token.tag == OPERATOR){
-//         if(token_precedence < op_precedence(prev_node->token.value)){
-//             printf("%c has lower precedence than %c\n", (char)prev_node->token.value, (char)Token.value);
-//             return prev_node;
-//         }
-//     }
-
-//     // 
-//     while(curr_node != NULL){
-//         if(curr_node->token.tag == OPERATOR){
-//             if(token_precedence < op_precedence(curr_node->token.value)){
-//                 printf("%s[WHILE LOOP]: %c has higher precedence than %c%s\n", RED_CONSOLE_TEXT,
-//                                                                              (char)curr_node->token.value,
-//                                                                              (char)Token.value,
-//                                                                              RESET_CONSOLE_TEXT);
-//                 return prev_node;
-//             }
-//         }
-//         prev_node = curr_node;
-//         curr_node = curr_node->right;
-//     }
-//     return NULL;
-// }
-static AST_Node_t **check_op_precedence(MEE_AST_t **Exp, Token_t Token){
-    if(Exp == NULL){
-        // perror or printf? i think printf as no system error can be caused here
-        // printf("Expression Error: Expression Empty. Exiting...\n");
-        // exit(EXIT_FAILURE);
-        return NULL;
-    }
-
-    AST_Node_t **prev_node = &(*Exp)->head;
-
-    int token_precedence = op_precedence(Token.value);
-    
-    // return head pointer if it has higher precedence operator
-    while((*prev_node) != NULL){
-        if((*prev_node)->token.tag == OPERATOR){
-            if(token_precedence < op_precedence((*prev_node)->token.value)){
-                printf("%s[WHILE LOOP]: %c has higher precedence than %c%s\n", RED_CONSOLE_TEXT,
-                                                                             (char)(*prev_node)->token.value,
-                                                                             (char)Token.value,
-                                                                             RESET_CONSOLE_TEXT);
-                return prev_node;
-            }
-        }
-        prev_node = &(*prev_node)->right;
-    }
-    return NULL;
-}
-AST_Node_t *parse_exp(Tokens_LL_t *tokens_list){
-    
     /**
-     * Suggestion:
-     * utilize number_stack and operator_stack to make an AST
-     * that naturally follows the precedence convention
-    **/
-    if(tokens_list == NULL){
-        printf("No Tokens provided.\n");
-        return NULL;
-    }
-
-    MEE_AST_t *Exp_ast = new_AST();
-    AST_Node_t *curr_ast_node = Exp_ast->head;
-    Tokens_LL_t *curr_tok = tokens_list;
-
-
-    printf("[PARSER]: Parsing the tokens...\n");
-
-    while(curr_tok != NULL){
-        // example: 4 + 2 * 10 + 3 * (5 + 1) - 2
-        // example: 4 + 2 * 10 + 3 * 5 + 1 - 2
-        switch(curr_tok->token.tag){
+     * init LHS TREE variable
+     * ITERATE TOKENS
+     *      INTEGER
+     *          PUSH TO LHS
+     *      OPERATOR
+     *          CHECK prev binding pow
+     *          PEEK NEXT TOK
+     *          RET
+     *          or 
+     *          POP LHS and PUSH TO CURR AST NODE
+     *  
+     * RECURSE
+     */
+    AST_Node_t *LHS = NULL;
+    Token_t token;
+    float curr_binding_power = 0.0;
+    while((*tokens)->token.tag != TOK_END){
+        // printf("\nTokens left: \n");
+        // print_tokens(*tokens);
+        token = pop_Token_Node(tokens);
+        // printf("Token POPed: %s, val: %lld\n", GET_TAG_STR(token.tag), token.value);
+        switch(token.tag){
             case INTEGER:
-                curr_ast_node->token.tag = INTEGER;
-                curr_ast_node->token.value = curr_tok->token.value;
+                LHS = new_AST_Node(token.tag, token.value);
+                Token_t token_peek = peek_Token_Node(*tokens);
+                if(token_peek.tag == TOK_END){
+                    printf("peek Tokens is end.\n");
+                    return LHS;
+                }
+                curr_binding_power = op_precedence(token_peek.value);
+                if(curr_binding_power < prev_binding_power){
+                    printf("Current binding power is less than previous.\n");
+                    return LHS;
+                }
                 break;
             case OPERATOR:
-                // if the precedence of current operator is smaller than the one above it,
-                // move the above node to the left of the current node and point head to
-                // current node...
-
-                // get the address of the memory the parent node is pointing to,
-                // and change it.
-                // OR just get the parent node who's left/right node points to the address we want and change it from parent!!! ToT ToT
-                AST_Node_t **node_addr = NULL;
-                if((node_addr = check_op_precedence(&Exp_ast, curr_tok->token)) != NULL){
-
-                    // printf("better than nothing.\n");
-                    AST_Node_t *new_ast_node = new_AST_Node();
-                    new_ast_node->token.tag = OPERATOR;
-                    new_ast_node->token.value = curr_tok->token.value;
-
-                    /**
-                     * TODO: Improve this junk here about operator precedence!
-                     * 
-                     * UPDATE: It is functional now, just refactor it and optimize it if it needs it.
-                     */
-                    // if the higher precedence operator is at head pointer, change the head pointer
-                    // only if the head node and current token has different operators
-                    // if(node_addr == Exp_ast->head 
-                    //     && ( node_addr->token.tag == OPERATOR 
-                    //         && curr_tok->token.tag == OPERATOR 
-                    //         && node_addr->token.value != curr_tok->token.value)){
-                    //     printf("%s[PARSER]: Changing the Head Pointer%s\n", RED_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
-                    //     new_ast_node->left = node_addr;
-                    //     Exp_ast->head = new_ast_node;
-                    // }
-                    // else{
-                    //     printf("%s[PARSER]: Changing the Head Pointer's Right Pointer%s\n", YELLOW_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
-                    printf("%sThe Parent Node: %s\n", YELLOW_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
-                    print_AST(new_ast_node);
-                    printf("\n\n");
-                    printf("%sThe node to reparent:%s\n", YELLOW_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
-                    print_AST(*node_addr);
-                    printf("\n\n");
-                    //     new_ast_node->left = node_addr->right;
-                    //     node_addr->right = new_ast_node;
-                    // }
-                    new_ast_node->left = *node_addr;
-                    *node_addr = new_ast_node;
-
-
-                    /** freeing the current node here
-                     * because: currently we are traversing through the ast tree,
-                     * (firstly this should not be applied as we should be working 'on' it
-                     * rather than 'in' it.)
-                     * through right side nodes, so here our curr_ast_node is actually a right node
-                     * of some parent node, so to break the potential bug of accidently looping over the 
-                     * same entries, we first free the current node to free the allocated memory,
-                     * then we make an entirely new tree with its head node as the node our tree
-                     * and assign it to our current node.
-                     * 
-                     * UPDATE: i think the problem is still there, as freeing the curr_ast_node does nothing
-                     * because we again allocate it some node!!
-                     * we have to rethink the whole tree traversal now. 
-                     * UPDATE: UPDATE: Maybe no!! because as we have got the source/parent node which points
-                     * to the node we want to change, we can then just NULL curr_ast_node and
-                     * rearrange the new_ast_node we made to be the parent of the node that the head node
-                     * points to.
-                    */
-                    printf("Current ast node before freeing: \n");
-                    print_AST(curr_ast_node);
-                    printf("\n\n");
-                    free(curr_ast_node);
-                    curr_ast_node = NULL;
-                    // curr_ast_node = new_ast_node;
-
-                    // curr_ast_node->token.tag = OPERATOR;
-                    // curr_ast_node->token.value = curr_tok->token.value;
-
-                    // curr_ast_node->left = *node_addr;
-
-                    // going to the right node.
-                    new_ast_node->right = new_AST_Node();
-                    curr_ast_node = new_ast_node->right;
-                    // printf("Ohh YESS!!\n");
-                }
-                else{
-
-                    // printf("Fresh Start\n");
-                    // make a new node with current node's value.
-                    AST_Node_t *new_ast_node = new_AST_Node();
-                    new_ast_node->token.tag = curr_ast_node->token.tag;
-                    new_ast_node->token.value = curr_ast_node->token.value;
-                    
-                    // assign the new node to current node's left node.
-                    curr_ast_node->left = new_ast_node;
-                    
-                    // update the current node.
-                    curr_ast_node->token.tag = OPERATOR;
-                    curr_ast_node->token.value = curr_tok->token.value;
-                    
-                    // follow the right node.
-                    curr_ast_node->right = new_AST_Node();
-                    curr_ast_node = curr_ast_node->right;
-                }
+                curr_binding_power = op_precedence(token.value);
+                // if(curr_binding_power > prev_binding_power){
+                    AST_Node_t *new_node = new_AST_Node(token.tag, token.value);
+                    new_node->left = LHS;
+                    LHS = new_node;
+                    printf("Going Right\n");
+                    LHS->right = pratt_parser(tokens, curr_binding_power);
+                    printf("returned from right\n");
+                    // prev_binding_power = curr_binding_power;
+                // }
+                // printf("Current AST: \n");
+                // print_AST(LHS);
                 break;
-
+            case TOK_END:
+                printf("Tokens END!\n");
+                break;
             case L_PAREN:
-                // add the parenthesis to stack for parenthesis balancing.
-                printf("calling paren_push with tag: %s\n", GET_TAG_STR(curr_tok->token.tag));
-                paren_push(L_PAREN);
-                if(curr_tok->next == NULL){
-                    perror("Expression Error: Missing Closing Parenthesis. Exiting Program...\n");
-                    exit(EXIT_FAILURE);
-                }
-                curr_ast_node->right = parse_exp(curr_tok->next);     // recurse for the inner values of expression
-                break;
             case R_PAREN:
-                if(paren_pop() != L_PAREN){
-                    perror("Expression Error: Missing Opening Parenthesis. Exiting Program...\n");
-                    exit(EXIT_FAILURE);
-                }
-                return Exp_ast->head;     // return from inside the parenthesis
-
+                printf("UNHANDLED CASE: PARENTHESIS.\n");
+                exit(EXIT_FAILURE);
             case EMPTY:
-                printf("%s[PARSER]: an EMPTY Node encountered while parsing.%s\n", YELLOW_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
-                break;
+                printf("IMPOSSIBLE CASE: EMPTY NODE.\n");
+                exit(EXIT_FAILURE);
         }
-        printf("Pushing token: ");
-        if(curr_tok->token.tag == INTEGER){
-            printf("\'%llu\'\n", curr_tok->token.value);
-        } else if(curr_tok->token.tag == OPERATOR){
-            printf("\'%c\'\n", (char)curr_tok->token.value);
-        }
-        // freeing current tokens from list
-        Tokens_LL_t *temp = curr_tok;
-        curr_tok = curr_tok->next;
-        free(temp);
-        // Building the AST node by node
-        printf("%sPrinting AST%s\n", GREEN_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
-        print_AST(Exp_ast->head);
-        printf("\n\n");
-        printf("Current Node ptr: \n");
-        print_AST(curr_ast_node);
-        printf("\n\n");
-
     }
-    // printf("Current node value: %lld\n", curr_ast_node->token.value);
-    // if(curr_ast_node->left == NULL){
-    //     printf("Current node -> left : NULL\n");
-    // }
-    // if(curr_ast_node->right == NULL){
-    //     printf("Current node -> right: NULL\n");
-    // }
-    // idk why but the ouput value changes when i uncomment these lines
-    // input: 1 + 2, output: +, 1, 2; with these commented
-    // input: 1 + 2, output: +, 1, 0; with these uncommented
-    // WTF???
-    // curr_ast_node->left = NULL;
-    // curr_ast_node->right = NULL;
-    printf("\n\nPrinting the full AST\n");
-    print_AST(Exp_ast->head);
-    return Exp_ast->head;
+    return LHS;
 }
+/**
+ * @brief Uses Pratt Parsing to parse the tokens into an AST
+ * @return Returns an AST of maths tokens
+ */
+AST_Node_t *parse_exp(Tokens_LL_t *tokens){
 
+    AST_Node_t *parsed_tokens = NULL;
+    float curr_binding_power = 0.0;
+
+    parsed_tokens = pratt_parser(&tokens, curr_binding_power);
+
+    return parsed_tokens;
+}
 
 /**
  * @brief Evaluate the arithmetic expression given the operands and operator,
@@ -528,6 +346,9 @@ int64_t evaluate_exp(AST_Node_t *exp_ast){
             uint64_t number = curr_node->token.value;
             free(curr_node);
             return number;
+        case TOK_END:
+            printf("Tokens Ended.\n");
+            break;
         case EMPTY:
         case L_PAREN:
         case R_PAREN:
@@ -538,7 +359,7 @@ int64_t evaluate_exp(AST_Node_t *exp_ast){
     exit(EXIT_FAILURE);
 }
 
-static void print_tokens(Tokens_LL_t *tokens_list){
+void print_tokens(Tokens_LL_t *tokens_list){
 
     Tokens_LL_t *curr_node = tokens_list;
     while(curr_node != NULL){
@@ -561,8 +382,12 @@ static void print_tokens(Tokens_LL_t *tokens_list){
             printf("TAG: R_PAREN, VAL: %c\n", (char)curr_node->token.value);
             break;
 
+        case TOK_END:
+            printf("TAG: TOK_END, VAL: %lld\n", curr_node->token.value);
+            break;
+
         case EMPTY:
-            printf("%sEMPTY NODE%s\n", YELLOW_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
+            printf("%sEMPTY NODE%s\n", RED_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
             break;
         // default:
         //     break;
@@ -572,37 +397,38 @@ static void print_tokens(Tokens_LL_t *tokens_list){
     printf("%sNULL encountered%s\n\n\n", GREEN_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
 }
 
-static void print_AST(AST_Node_t *ast_node){
+void print_AST(AST_Node_t *Exp_AST){
 
-    if(ast_node == NULL){
+    if(Exp_AST == NULL){
         // printf("%sNULL%s\n", RED_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
         printf("\n");
         return;
     }
 
-    switch(ast_node->token.tag){
+    switch(Exp_AST->token.tag){
 
         case INTEGER:
-            printf("NODE: \'%lld\'\n", ast_node->token.value);
+            printf("NODE: \'%lld\'\n", Exp_AST->token.value);
             break;
 
         case OPERATOR:
-            printf("NODE: \'%c\'\n", (char)ast_node->token.value);
+            printf("NODE: \'%c\'\n", (char)Exp_AST->token.value);
         case L_PAREN:
         case R_PAREN:
+        case TOK_END:
             break;
         
         case EMPTY:
             printf("%sNODE is EMPTY%s\n", YELLOW_CONSOLE_TEXT, RESET_CONSOLE_TEXT);
     }
-    if(ast_node->left != NULL){
+    if(Exp_AST->left != NULL){
         printf("LEFT: ");
-        print_AST(ast_node->left);
+        print_AST(Exp_AST->left);
     }
     // printf("\n");
-    if(ast_node->right != NULL){
+    if(Exp_AST->right != NULL){
         printf("RIGHT: ");
-        print_AST(ast_node->right);
+        print_AST(Exp_AST->right);
     }
     // printf("\n");
 
