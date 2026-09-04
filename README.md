@@ -11,6 +11,8 @@ The Basics of the program structure are implemented.
 
 Gracefully handles simple math expressions with proper precedence.
 
+Provides a simple help menu for commands and expressions.
+
 
 # Expression examples:
     4 + 2
@@ -24,7 +26,6 @@ Gracefully handles simple math expressions with proper precedence.
     % operator.
     ^ operator.
     negative numbers.
-
 
 
 # future improvements:

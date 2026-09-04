@@ -28,16 +28,31 @@ int main(){
 
         memset(input_exp, 0, MAX_EXP_SIZE);
         
-        printf("Enter Expression: ");
+        printf("Enter Expression (h for help)\n>> ");
         fgets(input_exp, MAX_EXP_SIZE, stdin);
         input_exp[strcspn(input_exp, "\n")] = '\0';
 
+        // exit command
         if(!strncmp(input_exp, "exit", 4) || !strncmp(input_exp, "EXIT", 4)){
             exit_flag = 1;
             continue;
         }
+        // clear console screen command
         if(!strncmp(input_exp, "clear", 5)){
             printf("\033[H\033[0J");
+            continue;
+        }
+        // help menu
+        if(!strncmp(input_exp, "help", 4) || !strncmp(input_exp, "h", 1)){
+            printf("\nUsage: \n");
+            printf("Enter any arithmetic expression.\n");
+            printf("E.g. \n\t2 + 4\n\t3 * 4 + 1\n\t100 - 1\n\t69 + 420\n");
+            printf("\nHelpful text commands: \n");
+            printf("clear\t-\tclears console screen\n");
+            printf("help \t-\tshows help menu\n");
+            printf("exit \t-\texit the program\n");
+            printf("----------------------------------------");
+            printf("\n\n");
             continue;
         }
 
