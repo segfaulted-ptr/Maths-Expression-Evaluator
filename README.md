@@ -1,28 +1,39 @@
 # Math Expressions Evaluator
 
 lexer - implemented
-parser - implemented; BROKEN
+
+parser - implemented
+
 evaluator - implemented
 
-The Basics of the program are complete. Only need to implement the evaluator now and add support for parenthesis.
+
+The Basics of the program structure are implemented.
+
 
 Handles simple math expressions, all with proper precedence.
-examples:
-    4 + 2
-    4 + 2 * 10
-    4 + 2 * 10 + 3 / 5 - 1
-
-Breaks on use of:
-    parenthesis
-    modulo operator
-    ^ operator
-    negative numbers
 
 
-future improvements:
-    parenthesis support
-    modulo operator support
-    negative numbers
-    power operator
-    trigonometric functions
-    logarithmic functions#
+# Expression examples:
+    4 + 2.
+    4 + 2 * 10.
+    4 + 2 * 10 + 3 / 5 - 1.
+    4 + 2 * 10 + 3 * (5 + 1) - 2.
+
+
+# Edge Cases:
+    % operator.
+    ^ operator.
+    negative numbers.
+    parenthesis at the start of the expression.
+
+
+
+# future improvements:
+    modulo operator, 
+    power operator, 
+    square root, 
+    negative numbers, 
+    absolute function, 
+    floating point numbers, 
+    trigonometric functions, 
+    logarithmic functions.
