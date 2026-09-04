@@ -257,7 +257,7 @@ static AST_Node_t *pratt_parser(Tokens_LL_t **tokens, float prev_binding_power){
                 }
                 // token after integer is closing parenthesis
                 if(token_peek.tag == R_PAREN){
-                    printf("[PARSER]: R_PAREN found.\n");
+                    // printf("[PARSER]: R_PAREN found.\n");
                     return LHS;
                 }
                 // token after integer is not an operator
@@ -307,13 +307,14 @@ static AST_Node_t *pratt_parser(Tokens_LL_t **tokens, float prev_binding_power){
                     exit(EXIT_FAILURE);
                 }
                 next_tok = pop_Token_Node(tokens);
-                // if(next_tok.tag == R_PAREN){
-                //     printf("Found R_PAREN\n");
-                //     exit(EXIT_FAILURE);
-                // }
-                return LHS;
+                // return if the parenthesis are not at the start of the expression
+                // else continue the loop
+                if(prev_binding_power != 0){
+                    return LHS;
+                }
+                break;
             case R_PAREN:
-                printf("[PARSER]: R_PAREN found. Returning.\n");
+                // printf("[PARSER]: R_PAREN found. Returning.\n");
                 return LHS;
             case TOK_END:
                 printf("Tokens END!\n");
@@ -337,8 +338,8 @@ AST_Node_t *parse_exp(Tokens_LL_t *tokens){
     parsed_tokens = pratt_parser(&tokens, curr_binding_power);
     if(tokens->token.tag != TOK_END){
         printf("[PARSER]: Bad Expression.\n");
-        printf("Tokens left: \n");
-        print_tokens(tokens);
+        // printf("Tokens left: \n");
+        // print_tokens(tokens);
         exit(EXIT_FAILURE);
     } else{
         printf("[PARSER]: Tokens list now freed properly.\n");

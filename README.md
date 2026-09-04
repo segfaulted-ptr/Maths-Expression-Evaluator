@@ -1,39 +1,38 @@
 # Math Expressions Evaluator
 
-lexer - implemented
+Tokenizer - implemented
 
-parser - implemented
+Parser - implemented
 
-evaluator - implemented
+Evaluator - implemented
 
 
 The Basics of the program structure are implemented.
 
-
-Handles simple math expressions, all with proper precedence.
+Gracefully handles simple math expressions with proper precedence.
 
 
 # Expression examples:
-    4 + 2.
-    4 + 2 * 10.
+    4 + 2
+    4 + 2 * 10
     4 + 2 * 10 + 3 / 5 - 1.
-    4 + 2 * 10 + 3 * (5 + 1) - 2.
+    4 + 2 * 10 + 3 * (5 + 1) - 2
+    (2 * 3 * 4) / (2 * 3 * 4)
 
 
-# Edge Cases:
+# Unimplemented Edge Cases:
     % operator.
     ^ operator.
     negative numbers.
-    parenthesis at the start of the expression.
 
 
 
 # future improvements:
-    modulo operator, 
-    power operator, 
-    square root, 
-    negative numbers, 
-    absolute function, 
-    floating point numbers, 
-    trigonometric functions, 
-    logarithmic functions.
+    modulo operator 
+    power operator 
+    square root 
+    negative numbers 
+    absolute function 
+    floating point numbers 
+    trigonometric functions 
+    logarithmic functions
